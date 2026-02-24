@@ -13,30 +13,27 @@ export default function DashboardScreen() {
     const [refreshing, setRefreshing] = useState(false)
     const [showForm, setShowForm] = useState(false)
     const [vistaGrafica, setVistaGrafica] = useState<'gasto' | 'ingreso'>('gasto')
+    const [mesOffset, setMesOffset] = useState(0)
 
-    useEffect(() => {
-        cargarDatos()
-    }, [])
+    useEffect(() => { cargarDatos() }, [mesOffset])
 
     const cargarDatos = async () => {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) return
 
         const userId = session.user.id
+        const { inicio, fin } = getMesInfo(mesOffset)
 
         const { data: profile } = await supabase
             .from('profiles').select('*').eq('id', userId).single()
         setUsuario(profile)
 
-        const inicioMes = new Date()
-        inicioMes.setDate(1)
-        const inicioStr = inicioMes.toISOString().split('T')[0]
-
         const { data } = await supabase
             .from('transactions')
             .select('*, categories(nombre, icono, color)')
             .eq('user_id', userId)
-            .gte('fecha', inicioStr)
+            .gte('fecha', inicio)
+            .lte('fecha', fin)
             .order('fecha', { ascending: false })
 
         setTransacciones(data || [])
@@ -61,6 +58,17 @@ export default function DashboardScreen() {
         if (h < 12) return 'Buenos días'
         if (h < 18) return 'Buenas tardes'
         return 'Buenas noches'
+    }
+
+    const getMesInfo = (offset: number) => {
+        const fecha = new Date()
+        fecha.setDate(1)
+        fecha.setMonth(fecha.getMonth() + offset)
+        const inicio = fecha.toISOString().split('T')[0]
+        const fin = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
+            .toISOString().split('T')[0]
+        const nombre = fecha.toLocaleDateString('es-HN', { month: 'long', year: 'numeric' })
+        return { inicio, fin, nombre }
     }
 
     const mesNombre = new Date().toLocaleDateString('es-HN', { month: 'long', year: 'numeric' })
@@ -110,6 +118,35 @@ export default function DashboardScreen() {
                         <Text style={styles.cardSub}>Ingresos - Gastos</Text>
                     </View>
                     <Text style={{ fontSize: 36 }}>📊</Text>
+                </View>
+
+                {/* Navegador de meses */}
+                <View style={styles.navegadorMes}>
+                    <TouchableOpacity
+                        style={styles.navegadorBtn}
+                        onPress={() => setMesOffset(prev => prev - 1)}
+                    >
+                        <Text style={styles.navegadorFlecha}>‹</Text>
+                    </TouchableOpacity>
+
+                    <View style={{ alignItems: 'center' }}>
+                        <Text style={styles.navegadorMesNombre}>
+                            {getMesInfo(mesOffset).nombre}
+                        </Text>
+                        {mesOffset !== 0 && (
+                            <TouchableOpacity onPress={() => setMesOffset(0)}>
+                                <Text style={styles.navegadorHoy}>Volver al mes actual</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.navegadorBtn, mesOffset === 0 && { opacity: 0.3 }]}
+                        onPress={() => setMesOffset(prev => prev + 1)}
+                        disabled={mesOffset === 0}
+                    >
+                        <Text style={styles.navegadorFlecha}>›</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={[styles.seccion, { marginBottom: 16 }]}>
@@ -230,4 +267,37 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     fabText: { color: '#fff', fontSize: 28, fontWeight: '300', marginTop: -2 },
+    navegadorMes: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        marginBottom: 16,
+    },
+    navegadorBtn: {
+        width: 40,
+        height: 40,
+        backgroundColor: '#1E293B',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#334155',
+    },
+    navegadorFlecha: {
+        color: '#FFFFFF',
+        fontSize: 24,
+        fontWeight: '300',
+    },
+    navegadorMesNombre: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '600',
+        textTransform: 'capitalize',
+    },
+    navegadorHoy: {
+        color: '#14B8A6',
+        fontSize: 12,
+        marginTop: 4,
+    },
 })
