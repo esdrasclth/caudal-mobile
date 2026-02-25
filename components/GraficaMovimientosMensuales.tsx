@@ -19,7 +19,7 @@ export default function GraficaMovimientosMensuales({ ingresos, gastos }: Props)
   ]
 
   const maxVal = Math.max(ingresos, gastos, Math.abs(saldo), 1)
-  const chartWidth = screenWidth - 80
+  const chartWidth = screenWidth - 100
 
   const formatMonto = (n: number) =>
     new Intl.NumberFormat('es-HN', { minimumFractionDigits: 2 }).format(n)
@@ -33,9 +33,9 @@ export default function GraficaMovimientosMensuales({ ingresos, gastos }: Props)
         barWidth={60}
         spacing={24}
         roundedTop
-        hideRules={false}
+        hideRules={true}
         rulesColor="rgba(255,255,255,0.08)"
-        xAxisColor="rgba(255,255,255,0.1)"
+        xAxisColor="transparent"
         yAxisColor="rgba(255,255,255,0.1)"
         yAxisTextStyle={{ color: '#64748B', fontSize: 10 }}
         xAxisLabelTextStyle={{ color: '#94A3B8', fontSize: 12 }}
@@ -45,6 +45,7 @@ export default function GraficaMovimientosMensuales({ ingresos, gastos }: Props)
         isAnimated={false}
         disableScroll
         yAxisLabelWidth={60}
+        xAxisThickness={0}
       />
 
       <View style={styles.valoresContainer}>
