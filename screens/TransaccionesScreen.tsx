@@ -5,6 +5,9 @@ import {
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import NuevaTransaccion from './NuevaTransaccionScreen'
+import SwipeableTransaccion from '../components/SwipeableTransaccion'
+import { Alert } from 'react-native'
+import { useRef } from 'react'
 
 export default function TransaccionesScreen() {
     const [transacciones, setTransacciones] = useState<any[]>([])
@@ -13,6 +16,7 @@ export default function TransaccionesScreen() {
     const [filtro, setFiltro] = useState<'todos' | 'ingreso' | 'gasto'>('todos')
     const [busqueda, setBusqueda] = useState('')
     const [showForm, setShowForm] = useState(false)
+    const swipeAbierto = useRef<any>(null)
 
     useEffect(() => { cargarTransacciones() }, [])
 
@@ -78,6 +82,24 @@ export default function TransaccionesScreen() {
     const totalFiltrado = filtradas.reduce((sum, t) => {
         return t.tipo === 'ingreso' ? sum + Number(t.monto) : sum - Number(t.monto)
     }, 0)
+
+    const handleEliminar = async (id: string) => {
+        Alert.alert(
+            'Eliminar transacción',
+            '¿Estás seguro? Esta acción no se puede deshacer.',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await supabase.from('transactions').delete().eq('id', id)
+                        cargarTransacciones()
+                    }
+                }
+            ]
+        )
+    }
 
     return (
         <View style={styles.container}>
@@ -152,26 +174,14 @@ export default function TransaccionesScreen() {
                                 {agrupadas[fecha].map((t: any, idx: number) => (
                                     <View
                                         key={t.id}
-                                        style={[
-                                            styles.transaccion,
-                                            idx < agrupadas[fecha].length - 1 && styles.transaccionBorder
-                                        ]}
+                                        style={idx < agrupadas[fecha].length - 1 && styles.transaccionBorder}
                                     >
-                                        <View style={styles.icono}>
-                                            <Text style={{ fontSize: 20 }}>{t.categories?.icono || '💸'}</Text>
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.nombre}>
-                                                {t.descripcion || t.categories?.nombre || 'Sin descripción'}
-                                            </Text>
-                                            <Text style={styles.cat}>
-                                                {t.categories?.nombre}
-                                                {t.wallets?.nombre ? ` · ${t.wallets.nombre}` : ''}
-                                            </Text>
-                                        </View>
-                                        <Text style={[styles.monto, { color: t.tipo === 'ingreso' ? '#4ADE80' : '#F87171' }]}>
-                                            {t.tipo === 'ingreso' ? '+' : '-'}L {formatMonto(Number(t.monto))}
-                                        </Text>
+                                        <SwipeableTransaccion
+                                            transaccion={t}
+                                            onEditar={() => console.log('editar', t.id)}
+                                            onEliminar={() => handleEliminar(t.id)}
+                                            swipeAbierto={swipeAbierto}
+                                        />
                                     </View>
                                 ))}
                             </View>
